@@ -18,7 +18,13 @@ done
 
 sleep 1
 
-cd target/emu-debug/bin
+machine_arch=$(uname -m)
+
+if [ "$machine_arch" = "x86_64" ]; then
+    cd target/emu-debug/bin
+else
+    cd target/qpu/bin
+fi
 
 printf "\n\n================================ Running Tests ================================\n\n"
 for file in $cpp_files; do
