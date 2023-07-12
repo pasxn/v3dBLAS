@@ -29,7 +29,7 @@ void divArrays(int size, const int* aa, const int* bb, int* rr) {
 int main(int argc, const char *argv[]) {
   
   int size = 900000;
-  int iterations = 1;
+  int iterations = 1000;
   
 //GPU arrays
   Int::Array a(size);
@@ -40,7 +40,7 @@ int main(int argc, const char *argv[]) {
     b[i] = 2;
   }
  
- //CPU arrays 
+  // CPU arrays 
   int aa[size];
   int bb[size];
   int rr[size];
@@ -49,21 +49,21 @@ int main(int argc, const char *argv[]) {
     bb[i]=2;
   }
   
-  //GPU execution
+  // GPU execution
   settings.init(argc, argv);
   auto k = compile(div);
   k.setNumQPUs(settings.num_qpus);
   
   auto start = std::chrono::high_resolution_clock::now();
   for(int y=0; y<iterations ;y++){            
-    k.load(size, &a, &b, &r);  
+    k.load(size, &a, &b, &r);
+    settings.process(k); 
   }
-  settings.process(k);
   auto end = std::chrono::high_resolution_clock::now(); //time ends here 
   
   std::chrono::duration<double> duration = end - start;
   
-  //CPU execution
+  // CPU execution
   auto start_cpu = std::chrono::high_resolution_clock::now();  //time start  
   for(int y=0; y<iterations; y++){
     divArrays(size, aa, bb,rr);
@@ -79,7 +79,7 @@ int main(int argc, const char *argv[]) {
   }  
   
   
-  //time log
+  // time log
   printf(".........Execution Time.........\n");
   printf("Execution time for CPU: %f seconds\n", duration_cpu.count());
   printf("Execution time for GPU: %f seconds\n", duration.count());

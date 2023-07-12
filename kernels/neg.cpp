@@ -8,7 +8,7 @@ using namespace V3DLib;
 
 V3DLib::Settings settings;
 
-//kernel
+// kernel
 void neg(Int n, Int::Ptr x , Int::Ptr y) {
   For (Int i = 0, i<n, i+=16)
     Int a = x[i];
@@ -16,7 +16,7 @@ void neg(Int n, Int::Ptr x , Int::Ptr y) {
   End
 }
 
-//cpp function
+// cpp function
 void negArrays(int size, const int* aa, int* rr) {
     for (int i = 0; i < size; i++) {
     	aa[i] = 0-rr[i];
@@ -25,15 +25,15 @@ void negArrays(int size, const int* aa, int* rr) {
 
 int main(int argc, const char *argv[]) {
   int size = 900000;
-  int iterations = 1;
-//GPU arrays
+  int iterations = 1000;
+  // GPU arrays
   Int::Array a(size);
   Int::Array r(size);
   for (int i = 0; i < size; i++) {
     a[i] = 5;
   }
  
- //CPU arrays 
+  // CPU arrays 
   int aa[size];
   int rr[size];
   for(int i=0; i<size; i++){
@@ -41,7 +41,7 @@ int main(int argc, const char *argv[]) {
   }
   
   
-  //GPU execution
+  // GPU execution
   settings.init(argc, argv);
 
   auto k = compile(neg);
@@ -49,15 +49,15 @@ int main(int argc, const char *argv[]) {
 
   auto start = std::chrono::high_resolution_clock::now();  
   for(int y=0; y<iterations ;y++){            
-    k.load(size, &a,&r);  
+    k.load(size, &a,&r);
+    settings.process(k);
   }
-  settings.process(k);
   auto end = std::chrono::high_resolution_clock::now(); 
   
   std::chrono::duration<double> duration = end - start;
 
 
-//CPU execution
+  // CPU execution
   auto start_cpu = std::chrono::high_resolution_clock::now();  //time start
   for(int y=0; y<iterations; y++){
     negArrays(size, aa,rr);
