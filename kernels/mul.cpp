@@ -8,7 +8,7 @@ using namespace V3DLib;
 
 V3DLib::Settings settings;
 
-//kernels
+// kernels
 void mul(Int n, Int::Ptr x, Int::Ptr y, Int::Ptr z) {
   For (Int i = 0, i<n, i+=16)
     Int a = x[i];
@@ -17,7 +17,7 @@ void mul(Int n, Int::Ptr x, Int::Ptr y, Int::Ptr z) {
   End
 }
 
-//cpp function
+// cpp function
 void mulArrays(int size, const int* aa, const int* bb, int* rr) {
     for (int i = 0; i < size; i++) {
     	int ca = aa[i];
@@ -29,8 +29,9 @@ void mulArrays(int size, const int* aa, const int* bb, int* rr) {
 int main(int argc, const char *argv[]) {
   
   int size = 900000;
-  int iterations = 1;
-//GPU arrays
+  int iterations = 1000;
+
+  // GPU arrays
   Int::Array a(size);
   Int::Array b(size);
   Int::Array r(size);
@@ -39,7 +40,7 @@ int main(int argc, const char *argv[]) {
     b[i] = 2;
   }
  
- //CPU arrays 
+  // CPU arrays 
   int aa[size];
   int bb[size];
   int rr[size];
@@ -48,16 +49,16 @@ int main(int argc, const char *argv[]) {
     bb[i]=2;
   }
   
-  //GPU execution
+  // GPU execution
   settings.init(argc, argv);
   auto k = compile(mul);
   k.setNumQPUs(settings.num_qpus);
   
   auto start = std::chrono::high_resolution_clock::now();
   for(int y=0; y<iterations ;y++){            
-    k.load(size, &a, &b, &r);  
+    k.load(size, &a, &b, &r);
+    settings.process(k);  
   }
-  settings.process(k);
   auto end = std::chrono::high_resolution_clock::now(); //time ends here 
   
   std::chrono::duration<double> duration = end - start;
