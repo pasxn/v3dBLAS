@@ -30,7 +30,7 @@ void addArrays(int size, const int* aa, const int* bb, int* rr) {
 
 int main(int argc, const char *argv[]) {
   
-  int size = 900000;
+  int size = 100000;
   int iterations = 1000;
 
   // gpu input
@@ -56,14 +56,14 @@ int main(int argc, const char *argv[]) {
   // gpu execution
   settings.init(argc, argv);
   auto k = compile(add);
-  k.setNumQPUs(settings.num_qpus);
+  k.setNumQPUs(12);
 
   auto start_gpu = std::chrono::high_resolution_clock::now();
 
   for(int y = 0; y < iterations ; y++) {
     k.load(size, &a, &b, &r);
-    settings.process(k);
   }
+  settings.process(k);
   auto end_gpu = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration_gpu = end_gpu - start_gpu;
 
@@ -86,6 +86,6 @@ int main(int argc, const char *argv[]) {
   // time log
   printf(".........Execution Time.........\n");
   printf("Execution time for CPU: %f seconds\n", duration_cpu.count());
-  printf("Execution time for GPU: %f seconds\n", duration_gpu.count());
+  printf("Execution time for GPU: %f seconds\n", duration_gpu.count()); 
 }
 
