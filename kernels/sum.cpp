@@ -8,58 +8,74 @@ using namespace V3DLib;
 
 V3DLib::Settings settings;
 
-void partial_sum(Int n, Int::Ptr p_temp, Int::Ptr r_temp) {
-  Int sum = 0;
-  For (Int i = 0, i < n, i++)
-    Int a = p_temp[i];
-    Int b = sum;
-    sum = a + b;
+void sum_gpu(Int n, Int::Ptr x, Int::Ptr result_gpu) {
+  Int qpu_id = me() * (n / numQPUs());
+  Int qpu_end = (me() + 1) * (n / numQPUs());
+  
+  // Adjust for the last QPU to handle remainder
+  Where(me() == numQPUs() - 1)
+    qpu_end = n;
   End
-  r_temp[0] = sum;
+
+  Int sum = 0;
+  For (Int i = qpu_id, i < qpu_end, i++)
+    Int val = x[i];
+    sum += val;
+  End
+
+  result_gpu[me()] = sum;
+}
+
+
+void sum_cpu(int n, int x[], int *result_cpu) {
+    *result_cpu = 0;
+    for (int i = 0; i < n; i++) {
+        *result_cpu += x[i];
+    }
 }
 
 int main() {
-  int size = 1000;  // Size of the full vector
-  int chunk_remainder = size % 8;
-  int chunk_size = (size - chunk_remainder) / 8;  // Size of each segment
-  Int::Array p(size);
-  Int::Array r_temp(1);  // One partial sum per QPU
-  Int::Array p_temp(size); // Size adjusted to accommodate remainder
-  Int::Array r(8);
+  int size = 12354;  // Size of the full vector
+  Int::Array x_gpu(size), result_gpu(8);
+  
+  int x_cpu[size] , result_cpu;
 
   for (int i = 0; i < size; ++i) {
-    p[i] = 1;
+    x_gpu[i] = 1; 
+    x_cpu[i] = 1; 
   }
 
-  auto k = compile(partial_sum);
+  //GPU run
+  auto k = compile(sum_gpu);
+  auto start_gpu = std::chrono::high_resolution_clock::now();
   k.setNumQPUs(8);
+  k.load(size, &x_gpu, &result_gpu);
+  settings.process(k);
+  auto end_gpu = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration_gpu = end_gpu - start_gpu;
+  
+  //CPU run
+  auto start_cpu = std::chrono::high_resolution_clock::now();
+  sum_cpu(size,x_cpu, &result_cpu);
+  auto end_cpu = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration_cpu = end_cpu - start_cpu;
 
-  // Each QPU sums a separate segment of the vector
+  int total_sum_gpu = 0;
   for (int i = 0; i < 8; ++i) {
-    for (int y = 0; y < chunk_size; y++) {
-      p_temp[y] = p[i * chunk_size + y];
-    }
-    k.load(chunk_size, &p_temp, &r_temp);
-    settings.process(k);
-    r[i] = r_temp[0];
+    total_sum_gpu += result_gpu[i];
   }
+  
+    if(result_cpu != total_sum_gpu){
+      printf("CPU output and GPU output is not equal \n");
+      printf("GPU output = %d and CPU output = %d \n", total_sum_gpu,result_cpu);
+    }  
+  
+  printf(".........Execution Time.........\n");
+  printf("Execution time for CPU: %f seconds\n", duration_cpu.count());
+  printf("Execution time for GPU: %f seconds\n", duration_gpu.count());
 
-  // Handle the remainder using the compute kernel
-  if (chunk_remainder > 0) {
-    for (int y = 0; y < chunk_remainder; y++) {
-      p_temp[y] = p[8 * chunk_size + y];
-    }
-    k.load(chunk_remainder, &p_temp, &r_temp);
-    settings.process(k);
-    r[7] += r_temp[0]; // Add the remainder sum to the last partial sum
-  }
-
-  int total_sum = 0;
-  for (int i = 0; i < 8; ++i) {
-    total_sum += r[i];
-  }
-
-  printf("Sum = %d\n", total_sum);
+ // printf("Sum = %d\n", total_sum_gpu);
 
   return 0;
 }
+
