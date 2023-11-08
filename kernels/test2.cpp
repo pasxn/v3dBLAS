@@ -8,44 +8,69 @@ using namespace V3DLib;
 
 V3DLib::Settings settings;
 
-void tensor_sum(Int n, Int::Ptr p, Int::Ptr r) {
-  Int qpu_id = me() * (n / numQPUs());
-  Int qpu_end = (me() + 1) * (n / numQPUs());
-  
-  // Adjust for the last QPU to handle remainder
-  Where(me() == numQPUs() - 1)
-    qpu_end = n;
+void add(Int n, Int::Ptr x, Int::Ptr y, Int::Ptr z) {
+  For (Int i = 0, i < n, i += 16)
+    Int a = x[i];
+    Int b = y[i];
+    z[i] = a + b;
   End
-
-  Int sum = 0;
-  For (Int i = qpu_id, i < qpu_end, i++)
-    Int val = p[i];
-    sum += val;
-  End
-
-  r[me()] = sum;
 }
 
-int main() {
-  int size = 12354;  // Size of the full vector
-  Int::Array p(size);
-  Int::Array r(8);
+void addArrays(int size, const int* aa, const int* bb, int* rr) {
+    for (int i = 0; i < size; i++) {
+    	int ca = aa[i];
+    	int cb = bb[i];
+    	rr[i] = ca + cb;
+    }
+}
 
-  for (int i = 0; i < size; ++i) {
-    p[i] = 1;
+int main(int argc, const char *argv[]) {
+  settings.init(argc, argv);
+  
+  for (int size = 2; size <= 2048; size *= 2) { // Adjust size range and multiplication factor as needed
+    int iterations = 1000;
+
+    Int::Array a(size);
+    Int::Array b(size);
+    Int::Array r(size);
+    
+    for (int i = 0; i < size; i++) {
+      a[i] = 1;
+      b[i] = 1;
+    }
+
+    int aa[size];
+    int bb[size];
+    int rr[size];
+
+    for(int i = 0; i < size; i++) {
+      aa[i]=1;
+      bb[i]=1;
+    }
+    
+    auto k = compile(add);
+    k.setNumQPUs(8);
+
+    auto start_gpu = std::chrono::high_resolution_clock::now();
+    for(int y = 0; y < iterations ; y++) {
+      k.load(size, &a, &b, &r);
+    }
+    settings.process(k);
+    auto end_gpu = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_gpu = end_gpu - start_gpu;
+
+    auto start_cpu = std::chrono::high_resolution_clock::now();
+    for(int y = 0; y < iterations ; y++) {
+      addArrays(size, aa, bb, rr);
+    }
+    auto end_cpu = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_cpu = end_cpu - start_cpu;
+
+    printf("Tensor size: %d\n", size);
+    printf("Execution time for CPU: %f seconds\n", duration_cpu.count());
+    printf("Execution time for GPU: %f seconds\n", duration_gpu.count());
+    printf("------------------------------\n");
   }
-
-  auto k = compile(tensor_sum);
-  k.setNumQPUs(8);
-  k.load(size, &p, &r);
-  settings.process(k);
-
-  int total_sum = 0;
-  for (int i = 0; i < 8; ++i) {
-    total_sum += r[i];
-  }
-
-  printf("Sum = %d\n", total_sum);
 
   return 0;
 }
