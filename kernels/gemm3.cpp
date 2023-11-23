@@ -8,11 +8,11 @@ V3DLib::Settings settings;
 
 
 void gemm3D(Int N, Int M, Int P, Float::Ptr A, Float::Ptr B, Float::Ptr C) {
-  For (Int l = 0, l < P, l += 16)
-    For (Int i = 0, i < N, i += 16)
-      For (Int j = 0, j < M, j += 16)
+  For (Int l = 0, l < P, l += 1)
+    For (Int i = 0, i < N, i += 1)
+      For (Int j = 0, j < M, j += 1)
         Float sum = 0.0f;
-        For (Int k = 0, k < N, k += 16)
+        For (Int k = 0, k < N, k += 1)
           Float val_a = A[l * N * M + i * M + k];
           Float val_b = B[l * N * M + k * M + j];
           sum += val_a * val_b; 

@@ -8,10 +8,16 @@ using namespace V3DLib;
 V3DLib::Settings settings;
 
 void max_gpu(Int n, Int::Ptr x, Int::Ptr result_gpu) {
+  Int start_val = me() * (n / numQPUs());
+  Int end_val = (me() + 1) * (n / numQPUs());
+  
+  Where(me() == numQPUs() - 1)
+    end_val = n;
+  End
   Int local_max = 0; 
 
   
-  For (Int i = 0, i < n, i++)
+  For (Int i = start_val, i < end_val, i++)
     Int a = x[i];
     Where (a > local_max)
       local_max = a;
@@ -20,7 +26,7 @@ void max_gpu(Int n, Int::Ptr x, Int::Ptr result_gpu) {
   
   result_gpu[me()] = local_max;
   
-  For (Int offset = 4, offset > 0, offset = offset / 2)
+  /*For (Int offset = 4, offset > 0, offset = offset / 2) 
     If (me() < offset)
       Int neighbor_max = result_gpu[me() + offset];
       Where (neighbor_max > local_max)
@@ -28,12 +34,13 @@ void max_gpu(Int n, Int::Ptr x, Int::Ptr result_gpu) {
       End
       result_gpu[me()] = local_max;
     End
-  End
+  End 
+  
 
   
   If (me() == 0)
     result_gpu[0] = local_max;
-  End
+  End */
 }
 
 void max_cpu(int n, int *x, int *result_cpu) {
@@ -47,46 +54,54 @@ void max_cpu(int n, int *x, int *result_cpu) {
 }
 
 int main() {
-  int size = 2000; 
-  Int::Array x_gpu(size), result_gpu(8); 
-  
-  int x_cpu[size], result_cpu[size];
 
- 
-  for (int i = 0; i < size; i++) {
-    x_gpu[i] = i; 
-    x_cpu[i] = i; 
-  }
+  // Iterate over a range of sizes
+  for (int size = 256; size <= 8192; size *= 2) {
+    Int::Array x_gpu(size), result_gpu(8); // Assume 8 QPUs are available
+    int x_cpu[size];
+    int result_cpu; // Only need a single int for the CPU result
+    int iterations = 1000;
 
-
-  //GPU run
-  auto k = compile(max_gpu); // Compile the kernel
-  auto start_gpu = std::chrono::high_resolution_clock::now();
-  k.load(size, &x_gpu, &result_gpu); // Load input data
-  k.setNumQPUs(8); // Set the number of QPUs to use
-  settings.process(k); // Run the kernel
-  auto end_gpu = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> duration_gpu = end_gpu - start_gpu;
-  
-  //CPU run
-  auto start_cpu = std::chrono::high_resolution_clock::now();
-  max_cpu(size,x_cpu, result_cpu);
-  auto end_cpu = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> duration_cpu = end_cpu - start_cpu;
-  
-  //functional verification
-    if(result_cpu[0] != result_gpu[0]){
-      printf("CPU output and GPU output is not equal at j \n");
-      printf("GPU output = %d and CPU output = %d \n",result_gpu[0],result_cpu[0]);
+    // Initialize arrays
+    for (int i = 0; i < size; i++) {
+      x_gpu[i] = i;
+      x_cpu[i] = i;
     }
-  
-  printf(".........Execution Time.........\n");
-  printf("Execution time for CPU: %f seconds\n", duration_cpu.count());
-  printf("Execution time for GPU: %f seconds\n", duration_gpu.count());
 
- // printf("Maximum value GPU = %d\n", result_gpu[0]);
- // printf("Maximum value CPU = %d\n", result_cpu[0]);
-  
+    // GPU run
+    auto k = compile(max_gpu);
+    auto start_gpu = std::chrono::high_resolution_clock::now();
+    k.setNumQPUs(8);
+    for(int i=0;i<iterations; i++){
+      k.load(size, &x_gpu, &result_gpu);
+    }
+    settings.process(k);
+    auto end_gpu = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_gpu = end_gpu - start_gpu;
+    
+    int global_max_gpu = 0;
+    for (int i = 0; i < 8; i++) {
+      if (result_gpu[i] > global_max_gpu) {
+        global_max_gpu = result_gpu[i];
+      }
+    }
+
+    // CPU run
+    auto start_cpu = std::chrono::high_resolution_clock::now();
+    for(int i=0;i<iterations; i++){
+      max_cpu(size, x_cpu, &result_cpu);
+    }
+    auto end_cpu = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_cpu = end_cpu - start_cpu;
+
+    // Functional verification
+    if (result_cpu != global_max_gpu) {
+      printf("Discrepancy found: CPU max = %d, GPU max = %d\n", result_cpu, global_max_gpu);
+    }
+
+    // Execution time log
+    printf("[%d, %f, %f]\n", size, duration_cpu.count(), duration_gpu.count());
+  }
 
   return 0;
 }

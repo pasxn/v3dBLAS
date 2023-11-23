@@ -17,13 +17,13 @@ if ! [[ " ${VALID_KERNELS[@]} " =~ " ${KERNEL_NAME} " ]]; then
     exit 1
 fi
 
-cd ../V3DLib
+cd V3DLib
 # compile the kernel // make command for the given kernel and redirect output
 make QPU=0 DEBUG=1 $KERNEL_NAME
 
 #run the kernel
-../target/emu-debug/bin/$KERNEL_NAME > ../extra/'Python Graph plot Script'/output.txt
+../target/emu-debug/bin/$KERNEL_NAME > ../extra/python_graph_plot_script/output.txt
 # Change directory and run the Python script
-cd ../extra/'Python Graph plot Script'
-python3 Plot.py &
+cd ../extra/python_graph_plot_script
+python3 plot.py &
 

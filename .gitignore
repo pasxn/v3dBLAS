@@ -1,3 +1,7 @@
+#----unwanted files
+V3DLib/
+CmdParameter/
+*.txt
 # --- Custom ---
 .vscode/
 *.ipynb

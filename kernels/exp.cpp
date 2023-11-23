@@ -51,8 +51,8 @@ int main() {
         auto start_gpu = std::chrono::high_resolution_clock::now();
         for (int y = 0; y < iterations; y++) {
             k.load(arr_size, &x_gpu, &result_gpu);
-            settings.process(k); // Run the kernel
         }
+        settings.process(k); // Run the kernel
         auto end_gpu = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> duration_gpu = end_gpu - start_gpu;
 

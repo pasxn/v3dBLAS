@@ -35,47 +35,60 @@ void sum_cpu(int n, int x[], int *result_cpu) {
 }
 
 int main() {
-  int size = 12354;  // Size of the full vector
-  Int::Array x_gpu(size), result_gpu(8);
-  
-  int x_cpu[size] , result_cpu;
+    int min_size = 2;     // Starting size for the array
+    int max_size = 2048;  // Maximum size for the array
+    int step_factor = 2;  // Factor to increase the size in each step
+    int qpu_count = 8;    // Number of QPUs to use
+    long int size_multiplied;
+    int iterations = 1000;
 
-  for (int i = 0; i < size; ++i) {
-    x_gpu[i] = 1; 
-    x_cpu[i] = 1; 
-  }
+    // Loop over the range of sizes
+    for (int size = min_size; size <= max_size; size *= step_factor) {
+        Int::Array x_gpu(size), result_gpu(qpu_count);
+        int x_cpu[size], result_cpu;
+	
+        // Initialize the arrays with test data
+        for (int i = 0; i < size; ++i) {
+            x_gpu[i] = 1;
+            x_cpu[i] = 1;
+        }
 
-  //GPU run
-  auto k = compile(sum_gpu);
-  auto start_gpu = std::chrono::high_resolution_clock::now();
-  k.setNumQPUs(8);
-  k.load(size, &x_gpu, &result_gpu);
-  settings.process(k);
-  auto end_gpu = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> duration_gpu = end_gpu - start_gpu;
-  
-  //CPU run
-  auto start_cpu = std::chrono::high_resolution_clock::now();
-  sum_cpu(size,x_cpu, &result_cpu);
-  auto end_cpu = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> duration_cpu = end_cpu - start_cpu;
+        // Compile and set up the GPU kernel
+        auto k = compile(sum_gpu);
+        k.setNumQPUs(qpu_count);
 
-  int total_sum_gpu = 0;
-  for (int i = 0; i < 8; ++i) {
-    total_sum_gpu += result_gpu[i];
-  }
-  
-    if(result_cpu != total_sum_gpu){
-      printf("CPU output and GPU output is not equal \n");
-      printf("GPU output = %d and CPU output = %d \n", total_sum_gpu,result_cpu);
-    }  
-  
-  printf(".........Execution Time.........\n");
-  printf("Execution time for CPU: %f seconds\n", duration_cpu.count());
-  printf("Execution time for GPU: %f seconds\n", duration_gpu.count());
+        // GPU run
+        auto start_gpu = std::chrono::high_resolution_clock::now();
+        for(int i=0;i<iterations; i++){
+          k.load(size, &x_gpu, &result_gpu);
+        }
+        settings.process(k);
+        auto end_gpu = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration_gpu = end_gpu - start_gpu;
 
- // printf("Sum = %d\n", total_sum_gpu);
+        // Sum up partial results from each QPU to get the total sum
+        int total_sum_gpu = 0;
+        for (int i = 0; i < qpu_count; ++i) {
+            total_sum_gpu += result_gpu[i];
+        }
 
-  return 0;
+        // CPU run
+        auto start_cpu = std::chrono::high_resolution_clock::now();
+        for(int i=0;i<iterations; i++){
+          sum_cpu(size, x_cpu, &result_cpu);
+        }
+        auto end_cpu = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration_cpu = end_cpu - start_cpu;
+
+        // Compare GPU and CPU results
+        if (result_cpu != total_sum_gpu) {
+            printf("Mismatch: CPU sum = %d, GPU sum = %d\n", result_cpu, total_sum_gpu);
+        } else {
+            // Print the execution time if the results match
+            printf("[%d, %f, %f]\n", size, duration_cpu.count(), duration_gpu.count());
+        }
+    }
+
+    return 0;
 }
 
