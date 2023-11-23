@@ -52,7 +52,7 @@ int main() {
   for (int size = 2; size <= 2048; size *= 2) { // Adjust size range and multiplication factor as needed
     Float::Array x_gpu(size), result_gpu(size), exponent_gpu(1);
     exponent_gpu[0] = 2;  // Exponent value
-    int iterations = 1000;
+    int iterations = 5000;
     
     float x_cpu[size], result_cpu[size], exponent_cpu = 2;
     

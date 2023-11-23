@@ -60,7 +60,7 @@ int main() {
     Int::Array x_gpu(size), result_gpu(8); // Assume 8 QPUs are available
     int x_cpu[size];
     int result_cpu; // Only need a single int for the CPU result
-    int iterations = 1000;
+    int iterations = 20000;
 
     // Initialize arrays
     for (int i = 0; i < size; i++) {

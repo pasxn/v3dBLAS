@@ -36,7 +36,7 @@ int main() {
     int max_size = 2048;  // Maximum size for the array
     int step_factor = 2;  // Factor to increase the size in each step
     int qpu_count = 8;    // Number of QPUs to use
-    int iterations = 1000;
+    int iterations = 30000;
 
     // Loop over the range of sizes
     for (int size = min_size; size <= max_size; size *= step_factor) {

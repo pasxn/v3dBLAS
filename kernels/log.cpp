@@ -26,7 +26,7 @@ void log_cpu(int n, float *x, float *result_cpu) {
 
 int main() {
 
-  int iterations = 1000;
+  int iterations = 5000;
 
   
   for (int size = 512; size <= 131072; size *= 2) { // Adjust size range and multiplication factor as needed

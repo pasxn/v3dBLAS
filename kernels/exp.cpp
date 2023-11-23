@@ -8,6 +8,7 @@ using namespace V3DLib;
 
 V3DLib::Settings settings;
 
+
 void exponential_gpu(Int n, Float::Ptr x, Float::Ptr result_gpu) {
   const Float log2e = 1.4426950408889634;  // log2(e)
   For (Int i = 0, i < n, i += 16) 
@@ -15,8 +16,6 @@ void exponential_gpu(Int n, Float::Ptr x, Float::Ptr result_gpu) {
     result_gpu[i] = exp(log2e * a); 
   End
 }
-
-
 
 void exp_CPU(int n,float* x, float* result_cpu){
   for (int i = 0; i < n; i++) {
@@ -52,8 +51,8 @@ int main() {
         for (int y = 0; y < iterations; y++) {
             k.load(arr_size, &x_gpu, &result_gpu);
         }
-        settings.process(k); // Run the kernel
         auto end_gpu = std::chrono::high_resolution_clock::now();
+        settings.process(k); // Run the kernel
         std::chrono::duration<double> duration_gpu = end_gpu - start_gpu;
 
         // CPU run
@@ -77,7 +76,7 @@ int main() {
 
         // Only print the timing if the results are valid
         if (valid) {
-            printf("[%d, %f, %f]\n", size, duration_cpu.count(), duration_gpu.count());
+            printf("[%d, %f, %f]\n", size, duration_gpu.count(), duration_cpu.count());
         } else {
             printf("Functional verification failed at size %d\n", arr_size);
         }

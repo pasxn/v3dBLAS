@@ -9,7 +9,7 @@ fi
 KERNEL_NAME=$1
 
 # List of valid kernel names
-VALID_KERNELS=("add" "div" "exp" "GEMM1" "GEMM2" "LOG" "max" "mul" "neg" "pow" "relu" "sub" "sum")
+VALID_KERNELS=("add" "div" "exp" "gemm1" "gemm2" "log" "max" "mul" "neg" "pow" "relu" "sub" "sum")
 
 # Check if provided kernel name is valid
 if ! [[ " ${VALID_KERNELS[@]} " =~ " ${KERNEL_NAME} " ]]; then
